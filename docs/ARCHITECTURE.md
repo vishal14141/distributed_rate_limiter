@@ -1,6 +1,6 @@
 # Architecture
 
-This document records the Day 1 design for the distributed rate limiter. It describes intended boundaries, not implemented features.
+This document records design decisions for the distributed rate limiter. Day 1 set boundaries; Day 2 added the public API and configuration value types. Token-bucket behavior is still not implemented.
 
 ## Purpose
 
@@ -31,7 +31,7 @@ Provide a Java library that multiple application instances can use to enforce a 
 
 | Component | Responsibility | Introduced |
 | --- | --- | --- |
-| API | Allow/deny decisions, configuration types | Day 2 |
+| API | Allow/deny decisions, configuration types | Day 2 (this change) |
 | In-memory token bucket | Single-process algorithm and concurrency | Days 3–5 |
 | HTTP middleware | Apply limits to requests | Day 6 |
 | Redis store | Shared bucket state across instances | Days 8–13 |
@@ -39,14 +39,14 @@ Provide a Java library that multiple application instances can use to enforce a 
 
 ## Target package layout
 
-Packages will be added when the matching work starts. Day 1 only creates the root package.
+Packages will be added when the matching work starts.
 
 | Package | Role |
 | --- | --- |
-| `com.distributedratelimiter` | Library identity (this change) |
-| `com.distributedratelimiter.api` | Public limiter and decision types |
+| `com.distributedratelimiter` | Library identity |
+| `com.distributedratelimiter.api` | Public limiter and decision types (Day 2) |
 | `com.distributedratelimiter.core` | Token-bucket implementation |
-| `com.distributedratelimiter.config` | Limit policies and loading |
+| `com.distributedratelimiter.config` | Limit policies (Day 2; file loading later) |
 | `com.distributedratelimiter.store` | Persistence ports and Redis adapter |
 | `com.distributedratelimiter.http` | Servlet/filter or similar middleware |
 | `com.distributedratelimiter.observe` | Logging and metrics hooks |
@@ -62,10 +62,21 @@ Packages will be added when the matching work starts. Day 1 only creates the roo
 | Storage (later) | Redis | Required by the project for shared state |
 | Algorithm (later) | Token bucket | Required initial algorithm |
 
+## Day 2 public types
+
+Callers depend on:
+
+- `RateLimiter` — port with `tryAcquire` overloads; default key is `"default"`.
+- `RateLimitRequest` / `RateLimitDecision` / `RateLimitOutcome` — request and allow/deny result.
+- `RateLimitConfig` — capacity (burst), refill tokens, and refill period.
+- `RateLimitPolicy` — named pairing of a policy id and a config.
+
+No implementation consumes tokens yet. File/env configuration loading is deferred (Day 15). Per-key usage is already represented on the request so later days do not need an API break.
+
 ## Non-goals for this phase
 
-Do not implement token-bucket logic, Redis clients, HTTP middleware, configuration loading, metrics, or Docker in Day 1. Those follow the roadmap after this skeleton compiles and tests cleanly.
+Do not implement token-bucket logic, Redis clients, HTTP middleware, configuration loading, metrics, or Docker in Day 2. Those follow the roadmap.
 
 ## Verification
 
-A developer should be able to clone the repository, run `./mvnw test`, and see a passing smoke test that the library module exists.
+A developer should be able to clone the repository, run `./mvnw verify`, and see passing tests for library identity plus API/config validation.

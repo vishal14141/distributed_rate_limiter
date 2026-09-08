@@ -6,7 +6,7 @@
 Project structure and architecture. **Done** — Maven wrapper, Java 17 module, architecture doc, smoke test.
 
 ### Day 2
-Basic rate limiter interfaces and configuration.
+Basic rate limiter interfaces and configuration. **Done** — `RateLimiter` port, decision types, `RateLimitConfig` / `RateLimitPolicy`.
 
 ### Day 3
 Implement in-memory token bucket.
