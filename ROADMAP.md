@@ -9,7 +9,7 @@ Project structure and architecture. **Done** — Maven wrapper, Java 17 module, 
 Basic rate limiter interfaces and configuration. **Done** — `RateLimiter` port, decision types, `RateLimitConfig` / `RateLimitPolicy`.
 
 ### Day 3
-Implement in-memory token bucket.
+Implement in-memory token bucket. **Done** — `InMemoryRateLimiter` with per-key buckets, continuous refill, and clock injection.
 
 ### Day 4
 Unit tests for token bucket behavior.
