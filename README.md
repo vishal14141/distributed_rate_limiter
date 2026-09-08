@@ -1,6 +1,6 @@
 # Distributed Rate Limiter
 
-A Java library for token-bucket rate limiting with Redis-backed shared state. This repository is in early development; Day 1 establishes the build, package layout, and architecture only.
+A Java library for token-bucket rate limiting with Redis-backed shared state. This repository is in early development; Day 2 adds the public limiter API and configuration types. Token-bucket behavior is not implemented yet.
 
 ## Requirements
 
@@ -22,7 +22,10 @@ Format sources:
 
 ## Layout
 
-- `src/main/java` — library sources (`com.distributedratelimiter`)
+- `src/main/java` — library sources
+  - `com.distributedratelimiter` — library identity
+  - `com.distributedratelimiter.api` — `RateLimiter` and `RateLimitDecision`
+  - `com.distributedratelimiter.config` — `RateLimitConfig`
 - `src/test/java` — unit tests
 - `docs/ARCHITECTURE.md` — component boundaries and design decisions
 - `PROJECT.md` — goals and non-goals
@@ -31,4 +34,15 @@ Format sources:
 
 ## Status
 
-Architecture and repository skeleton. Rate limiting, Redis, and HTTP middleware are not implemented yet.
+Public interfaces and configuration types are in place. In-memory token bucket, Redis, and HTTP middleware are not implemented yet.
+
+Example configuration (no limiter implementation yet):
+
+```java
+import com.distributedratelimiter.api.RateLimitDecision;
+import com.distributedratelimiter.config.RateLimitConfig;
+import java.time.Duration;
+
+RateLimitConfig config = RateLimitConfig.perSecond(100, 10);
+RateLimitDecision denied = RateLimitDecision.deny(0, Duration.ofMillis(100));
+```
