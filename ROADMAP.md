@@ -3,7 +3,7 @@
 ## Phase 1 — Foundation
 
 ### Day 1
-Project structure and architecture.
+Project structure and architecture. **Done** — Maven wrapper, Java 17 module, architecture doc, smoke test.
 
 ### Day 2
 Basic rate limiter interfaces and configuration.
