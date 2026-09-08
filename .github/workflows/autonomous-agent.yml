@@ -2,24 +2,39 @@ name: Autonomous AI Developer
 
 on:
   workflow_dispatch:
+  schedule:
+    # 1:00 AM India time (UTC+5:30)
+    - cron: "30 19 * * *"
+
+permissions:
+  contents: write
+  pull-requests: write
+
+concurrency:
+  group: autonomous-ai-developer
+  cancel-in-progress: false
 
 jobs:
-  day-2-agent:
+  autonomous-day:
     runs-on: ubuntu-latest
+    timeout-minutes: 150
 
     steps:
       - name: Launch Cursor Cloud Agent
+        id: launch
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
         run: |
-          curl --fail-with-body \
+          set -euo pipefail
+
+          response=$(curl --fail-with-body \
             -X POST \
             https://api.cursor.com/v1/agents \
             -u "$CURSOR_API_KEY:" \
             -H "Content-Type: application/json" \
             -d '{
               "prompt": {
-                "text": "You are the autonomous developer for a 30-day software development experiment. Read AGENTS.md, PROJECT.md, and ROADMAP.md before doing anything. The repository is a distributed rate limiter. Day 1 is already complete. Your task for this run is ONLY Day 2: Basic rate limiter interfaces and configuration. Do not work on Day 3 or any later roadmap item. Implement the Day 2 requirements according to the existing architecture and project conventions. Inspect the existing code before making changes. Write clean production-quality Java 17 code and appropriate tests. Run the project formatting and verification/test commands before finishing. Update relevant documentation or ROADMAP.md to accurately reflect Day 2 completion if appropriate. Do not skip requirements and do not invent unrelated features. Do not modify production infrastructure. Never expose secrets. Do not force-push. When the Day 2 work is complete and tests pass, commit all Day 2 changes with a clear commit message and push the branch. Create a pull request for the Day 2 work. Then stop. Do not start Day 3."
+                "text": "You are the autonomous developer for a 30-day software development experiment. Read AGENTS.md, PROJECT.md, and ROADMAP.md before doing anything. Determine the current project state and the next incomplete roadmap day. This run represents exactly ONE development day. Implement ONLY the next incomplete roadmap day. Never skip a day. Never work on a later day. If Day 30 is already complete, make no changes and report that the experiment is complete. Inspect the existing code and architecture before making changes. Implement the selected day as production-quality Java 17 code following the existing project conventions. Add appropriate tests. Run formatting and verification/test commands before finishing. Update relevant documentation and ROADMAP.md to accurately reflect completed work. Do not invent unrelated features. Do not modify production infrastructure. Never expose secrets. Never force-push. When the day's work is complete and tests pass, commit it with a clear commit message, push the branch, and create a pull request. Then stop. Your final response must clearly state which roadmap day you completed, what you changed, what tests passed, and the pull request URL if one was created."
               },
               "model": {
                 "id": "grok-4.6",
@@ -41,4 +56,102 @@ jobs:
                 }
               ],
               "autoCreatePR": true
-            }'
+            }')
+
+          echo "$response"
+
+          agent_id=$(echo "$response" | jq -r '.agent.id')
+          run_id=$(echo "$response" | jq -r '.run.id')
+
+          echo "agent_id=$agent_id" >> "$GITHUB_OUTPUT"
+          echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Cursor Cloud Agent
+        id: wait
+        env:
+          CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          AGENT_ID: ${{ steps.launch.outputs.agent_id }}
+          RUN_ID: ${{ steps.launch.outputs.run_id }}
+        run: |
+          set -euo pipefail
+
+          echo "Waiting for Cursor agent..."
+          echo "Agent: $AGENT_ID"
+          echo "Run:   $RUN_ID"
+
+          for i in $(seq 1 90); do
+            response=$(curl --fail-with-body \
+              https://api.cursor.com/v1/agents/"$AGENT_ID"/runs/"$RUN_ID" \
+              -u "$CURSOR_API_KEY:")
+
+            status=$(echo "$response" | jq -r '.status')
+
+            echo "[$i/90] Cursor run status: $status"
+
+            if [ "$status" = "FINISHED" ]; then
+              echo "$response" | jq .
+              echo "$response" > /tmp/cursor-run.json
+              exit 0
+            fi
+
+            if [ "$status" = "ERROR" ] || \
+               [ "$status" = "CANCELLED" ] || \
+               [ "$status" = "EXPIRED" ]; then
+              echo "$response" | jq .
+              echo "Cursor agent failed with status: $status"
+              exit 1
+            fi
+
+            sleep 60
+          done
+
+          echo "Cursor agent did not finish within 90 minutes."
+          exit 1
+
+      - name: Get Pull Request
+        id: pr
+        run: |
+          set -euo pipefail
+
+          pr_url=$(jq -r '
+            .git.branches[]
+            | select(.prUrl != null)
+            | .prUrl
+          ' /tmp/cursor-run.json | head -n 1)
+
+          if [ -z "$pr_url" ] || [ "$pr_url" = "null" ]; then
+            echo "No pull request was created."
+            echo "This may mean the 30-day experiment is already complete."
+            exit 0
+          fi
+
+          echo "Pull request: $pr_url"
+          echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
+
+      - name: Wait for Pull Request checks
+        if: steps.pr.outputs.pr_url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: |
+          set -euo pipefail
+
+          echo "Waiting for GitHub checks..."
+          gh pr checks "$PR_URL" --watch --fail
+
+      - name: Merge Pull Request
+        if: steps.pr.outputs.pr_url != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          PR_URL: ${{ steps.pr.outputs.pr_url }}
+        run: |
+          set -euo pipefail
+
+          echo "Merging: $PR_URL"
+
+          gh pr merge "$PR_URL" \
+            --squash \
+            --delete-branch \
+            --repo "${{ github.repository }}"
+
+          echo "Pull request merged successfully."
