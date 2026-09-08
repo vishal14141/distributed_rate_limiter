@@ -4,7 +4,7 @@ on:
   workflow_dispatch:
 
 jobs:
-  test-agent:
+  day-2-agent:
     runs-on: ubuntu-latest
 
     steps:
@@ -19,7 +19,7 @@ jobs:
             -H "Content-Type: application/json" \
             -d '{
               "prompt": {
-                "text": "You are participating in a 30-day autonomous software development experiment. Read AGENTS.md, PROJECT.md and ROADMAP.md from the repository. DO NOT MODIFY ANY FILES. DO NOT CREATE A COMMIT. DO NOT CREATE A PULL REQUEST. Report the current project state, the latest commit, whether Day 1 is complete, and the exact task planned for Day 2."
+                "text": "You are the autonomous developer for a 30-day software development experiment. Read AGENTS.md, PROJECT.md, and ROADMAP.md before doing anything. The repository is a distributed rate limiter. Day 1 is already complete. Your task for this run is ONLY Day 2: Basic rate limiter interfaces and configuration. Do not work on Day 3 or any later roadmap item. Implement the Day 2 requirements according to the existing architecture and project conventions. Inspect the existing code before making changes. Write clean production-quality Java 17 code and appropriate tests. Run the project formatting and verification/test commands before finishing. Update relevant documentation or ROADMAP.md to accurately reflect Day 2 completion if appropriate. Do not skip requirements and do not invent unrelated features. Do not modify production infrastructure. Never expose secrets. Do not force-push. When the Day 2 work is complete and tests pass, commit all Day 2 changes with a clear commit message and push the branch. Create a pull request for the Day 2 work. Then stop. Do not start Day 3."
               },
               "model": {
                 "id": "grok-4.6",
@@ -37,8 +37,8 @@ jobs:
               "repos": [
                 {
                   "url": "https://github.com/vishal14141/distributed_rate_limiter",
-                  "startingRef": "99dbf62e4f0e185b26cf95afa48bd7796886370e"
+                  "startingRef": "main"
                 }
               ],
-              "autoCreatePR": false
+              "autoCreatePR": true
             }'
