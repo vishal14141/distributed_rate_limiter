@@ -21,15 +21,19 @@ jobs:
               "prompt": {
                 "text": "You are participating in a 30-day autonomous software development experiment. Read AGENTS.md, PROJECT.md and ROADMAP.md from the repository. DO NOT MODIFY ANY FILES. DO NOT CREATE A COMMIT. DO NOT CREATE A PULL REQUEST. Report the current project state, the latest commit, whether Day 1 is complete, and the exact task planned for Day 2."
               },
-              "model": [
-                {
-                  "id": "grok-4.6",
-                  "params": {
-                    "effort": "medium",
-                    "fast": false
+              "model": {
+                "id": "grok-4.6",
+                "params": [
+                  {
+                    "id": "effort",
+                    "value": "medium"
+                  },
+                  {
+                    "id": "fast",
+                    "value": "false"
                   }
-                }
-              ],
+                ]
+              },
               "repos": [
                 {
                   "url": "https://github.com/vishal14141/distributed_rate_limiter",
