@@ -149,13 +149,14 @@ jobs:
 
           if [ -z "$pr_url" ] || [ "$pr_url" = "null" ]; then
             echo "No pull request was created."
+            echo "The experiment may already be complete."
             exit 0
           fi
 
           echo "Pull request: $pr_url"
           echo "pr_url=$pr_url" >> "$GITHUB_OUTPUT"
 
-      - name: Wait for Pull Request checks
+      - name: Verify Pull Request is open
         if: steps.pr.outputs.pr_url != ''
         env:
           GH_TOKEN: ${{ github.token }}
@@ -163,8 +164,18 @@ jobs:
         run: |
           set -euo pipefail
 
-          echo "Waiting for GitHub checks..."
-          gh pr checks "$PR_URL" --watch
+          echo "Checking pull request status..."
+
+          state=$(gh pr view "$PR_URL" \
+            --json state \
+            --jq '.state')
+
+          echo "Pull request state: $state"
+
+          if [ "$state" != "OPEN" ]; then
+            echo "Pull request is not open."
+            exit 1
+          fi
 
       - name: Merge Pull Request
         if: steps.pr.outputs.pr_url != ''
