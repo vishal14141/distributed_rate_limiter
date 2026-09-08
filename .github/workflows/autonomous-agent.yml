@@ -37,7 +37,7 @@ jobs:
               "repos": [
                 {
                   "url": "https://github.com/vishal14141/distributed_rate_limiter",
-                  "startingRef": "main"
+                  "startingRef": "99dbf62e4f0e185b26cf95afa48bd7796886370e"
                 }
               ],
               "autoCreatePR": false
