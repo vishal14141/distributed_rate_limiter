@@ -12,7 +12,7 @@ Basic rate limiter interfaces and configuration. **Done** — `RateLimiter` port
 Implement in-memory token bucket. **Done** — `InMemoryRateLimiter` with per-key buckets, continuous refill, and clock injection.
 
 ### Day 4
-Unit tests for token bucket behavior.
+Unit tests for token bucket behavior. **Done** — refill math, capacity cap, retry-after, key isolation, and remaining-token flooring.
 
 ### Day 5
 Concurrency safety and race detection.
