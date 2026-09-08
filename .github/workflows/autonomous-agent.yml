@@ -3,7 +3,7 @@ name: Autonomous AI Developer
 on:
   workflow_dispatch:
   schedule:
-    # 1:00 AM India time (UTC+5:30)
+    # 1:00 AM India time = 19:30 UTC
     - cron: "30 19 * * *"
 
 permissions:
@@ -20,10 +20,28 @@ jobs:
     timeout-minutes: 150
 
     steps:
+      - name: Get current main commit
+        id: main-ref
+        run: |
+          set -euo pipefail
+
+          MAIN_SHA=$(git ls-remote \
+            https://github.com/vishal14141/distributed_rate_limiter.git \
+            refs/heads/main | awk '{print $1}')
+
+          if [ -z "$MAIN_SHA" ]; then
+            echo "Could not determine current main commit."
+            exit 1
+          fi
+
+          echo "Current main SHA: $MAIN_SHA"
+          echo "sha=$MAIN_SHA" >> "$GITHUB_OUTPUT"
+
       - name: Launch Cursor Cloud Agent
         id: launch
         env:
           CURSOR_API_KEY: ${{ secrets.CURSOR_API_KEY }}
+          MAIN_SHA: ${{ steps.main-ref.outputs.sha }}
         run: |
           set -euo pipefail
 
@@ -52,7 +70,7 @@ jobs:
               "repos": [
                 {
                   "url": "https://github.com/vishal14141/distributed_rate_limiter",
-                  "startingRef": "main"
+                  "startingRef": "'"$MAIN_SHA"'"
                 }
               ],
               "autoCreatePR": true
@@ -62,6 +80,16 @@ jobs:
 
           agent_id=$(echo "$response" | jq -r '.agent.id')
           run_id=$(echo "$response" | jq -r '.run.id')
+
+          if [ -z "$agent_id" ] || [ "$agent_id" = "null" ]; then
+            echo "Cursor did not return an agent ID."
+            exit 1
+          fi
+
+          if [ -z "$run_id" ] || [ "$run_id" = "null" ]; then
+            echo "Cursor did not return a run ID."
+            exit 1
+          fi
 
           echo "agent_id=$agent_id" >> "$GITHUB_OUTPUT"
           echo "run_id=$run_id" >> "$GITHUB_OUTPUT"
@@ -77,11 +105,11 @@ jobs:
 
           echo "Waiting for Cursor agent..."
           echo "Agent: $AGENT_ID"
-          echo "Run:   $RUN_ID"
+          echo "Run: $RUN_ID"
 
           for i in $(seq 1 90); do
             response=$(curl --fail-with-body \
-              https://api.cursor.com/v1/agents/"$AGENT_ID"/runs/"$RUN_ID" \
+              "https://api.cursor.com/v1/agents/$AGENT_ID/runs/$RUN_ID" \
               -u "$CURSOR_API_KEY:")
 
             status=$(echo "$response" | jq -r '.status')
@@ -121,7 +149,6 @@ jobs:
 
           if [ -z "$pr_url" ] || [ "$pr_url" = "null" ]; then
             echo "No pull request was created."
-            echo "This may mean the 30-day experiment is already complete."
             exit 0
           fi
 
