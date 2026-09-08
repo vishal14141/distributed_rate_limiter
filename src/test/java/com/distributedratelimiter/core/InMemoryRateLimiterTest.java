@@ -104,32 +104,4 @@ class InMemoryRateLimiterTest {
         assertThrows(NullPointerException.class, () -> new InMemoryRateLimiter(null));
         assertThrows(NullPointerException.class, () -> limiter.tryAcquire((RateLimitRequest) null));
     }
-
-    private static final class MutableClock extends Clock {
-
-        private Instant instant;
-
-        private MutableClock(Instant instant) {
-            this.instant = instant;
-        }
-
-        void advance(Duration duration) {
-            instant = instant.plus(duration);
-        }
-
-        @Override
-        public ZoneOffset getZone() {
-            return ZoneOffset.UTC;
-        }
-
-        @Override
-        public Clock withZone(java.time.ZoneId zone) {
-            throw new UnsupportedOperationException();
-        }
-
-        @Override
-        public Instant instant() {
-            return instant;
-        }
-    }
 }

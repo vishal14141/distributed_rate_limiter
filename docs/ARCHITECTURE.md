@@ -1,6 +1,6 @@
 # Architecture
 
-This document records design decisions for the distributed rate limiter. Days 1–2 defined the public API. Day 3 added an in-memory token-bucket implementation for a single process.
+This document records design decisions for the distributed rate limiter. Days 1–2 defined the public API. Day 3 added an in-memory token-bucket implementation for a single process. Day 4 adds focused unit tests for that algorithm.
 
 ## Purpose
 
@@ -32,7 +32,7 @@ Provide a Java library that multiple application instances can use to enforce a 
 | Component | Responsibility | Introduced |
 | --- | --- | --- |
 | API | Allow/deny decisions, configuration types | Day 2 |
-| In-memory token bucket | Single-process algorithm | Day 3 (this change); concurrency tests on Day 5 |
+| In-memory token bucket | Single-process algorithm | Day 3; behavior tests Day 4; concurrency tests Day 5 |
 | HTTP middleware | Apply limits to requests | Day 6 |
 | Redis store | Shared bucket state across instances | Days 8–13 |
 | Observability | Logs, metrics, health | Days 19–21 |
@@ -85,9 +85,23 @@ File/env configuration loading is deferred (Day 15). Per-key usage is represente
 
 If `permits` is greater than `capacity`, the call is denied, remaining tokens are unchanged, and `retryAfter` is zero because waiting cannot satisfy the request.
 
+## Day 4 token-bucket tests
+
+`TokenBucketBehaviorTest` and `InMemoryRateLimiterTest` pin the algorithm without sleeping:
+
+- Burst consumes full capacity before refill.
+- Refill is continuous and proportional to elapsed time.
+- Tokens never exceed capacity after a long idle.
+- `remainingTokens` is the floor of the fractional balance.
+- `retryAfter` is the wait for the requested permits at the configured refill rate, and shrinks as time advances.
+- Denied calls do not spend tokens; keys do not share buckets.
+- A clock that does not move (or moves backward) does not add tokens.
+
+Concurrency and race detection remain Day 5.
+
 ## Non-goals for this phase
 
-Do not add Redis clients, HTTP middleware, configuration loading, metrics, or Docker in Day 3. Broader token-bucket unit coverage and concurrency stress tests are Days 4–5.
+Do not add Redis clients, HTTP middleware, configuration loading, metrics, or Docker in Day 4.
 
 ## Verification
 
