@@ -16,6 +16,10 @@ import java.util.concurrent.ConcurrentHashMap;
  * <p>Each key has its own bucket starting at {@link RateLimitConfig#capacity()}. Tokens refill
  * continuously at {@code refillTokens} per {@code refillPeriod} and never exceed capacity. This
  * backend is not shared across JVMs.
+ *
+ * <p>The limiter is safe for concurrent use: buckets are stored in a {@link ConcurrentHashMap}, and
+ * each bucket serializes {@link #tryAcquire} so two threads cannot spend the same tokens. Distinct
+ * keys do not share a lock, so they can be acquired in parallel.
  */
 public final class InMemoryRateLimiter implements RateLimiter {
 
@@ -40,6 +44,7 @@ public final class InMemoryRateLimiter implements RateLimiter {
     @Override
     public RateLimitDecision tryAcquire(RateLimitRequest request) {
         Objects.requireNonNull(request, "request");
+        // computeIfAbsent publishes one Bucket per key; tryAcquire then locks that instance.
         Bucket bucket = buckets.computeIfAbsent(request.key(), ignored -> new Bucket());
         return bucket.tryAcquire(request);
     }
@@ -50,6 +55,10 @@ public final class InMemoryRateLimiter implements RateLimiter {
         private long lastRefillNanos;
         private boolean initialized;
 
+        /**
+         * Exclusive mutation of this key's token balance. Callers must not invoke refill or
+         * remaining-token helpers except through this method.
+         */
         synchronized RateLimitDecision tryAcquire(RateLimitRequest request) {
             refill(nowNanos());
             long permits = request.permits();

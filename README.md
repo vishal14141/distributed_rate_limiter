@@ -1,6 +1,6 @@
 # Distributed Rate Limiter
 
-A Java library for token-bucket rate limiting with Redis-backed shared state. This repository is in early development; Day 4 expands unit tests for in-memory token-bucket behavior. Redis-backed sharing is not implemented yet.
+A Java library for token-bucket rate limiting with Redis-backed shared state. This repository is in early development; Day 5 adds concurrency tests so in-memory acquires cannot overspend a bucket under contention. Redis-backed sharing is not implemented yet.
 
 ## Requirements
 
@@ -31,4 +31,4 @@ Format sources:
 
 ## Status
 
-Public `RateLimiter` API, configuration types, an in-memory token-bucket implementation (`InMemoryRateLimiter`), and unit tests for burst, continuous refill, capacity capping, retry-after, and per-key isolation. Redis and HTTP middleware are not implemented yet. Concurrency stress tests are Day 5.
+Public `RateLimiter` API, configuration types, an in-memory token-bucket implementation (`InMemoryRateLimiter`) that is safe for concurrent callers (one lock per key), and unit tests for burst, refill, isolation, and concurrent overspend races. Redis and HTTP middleware are not implemented yet.

@@ -1,6 +1,6 @@
 # Architecture
 
-This document records design decisions for the distributed rate limiter. Days 1–2 defined the public API. Day 3 added an in-memory token-bucket implementation for a single process. Day 4 adds focused unit tests for that algorithm.
+This document records design decisions for the distributed rate limiter. Days 1–2 defined the public API. Day 3 added an in-memory token-bucket implementation for a single process. Day 4 added focused unit tests for that algorithm. Day 5 covers concurrency safety of the in-memory backend.
 
 ## Purpose
 
@@ -97,12 +97,29 @@ If `permits` is greater than `capacity`, the call is denied, remaining tokens ar
 - Denied calls do not spend tokens; keys do not share buckets.
 - A clock that does not move (or moves backward) does not add tokens.
 
-Concurrency and race detection remain Day 5.
+## Day 5 concurrency
+
+`InMemoryRateLimiter` is shared across threads:
+
+- `ConcurrentHashMap` publishes exactly one `Bucket` per key.
+- Each `Bucket.tryAcquire` is `synchronized` on that bucket, so refill, spend, and remaining-token reads cannot interleave for the same key.
+- Distinct keys use distinct monitors, so they do not block each other.
+- Denied calls still take the lock but do not reduce the token balance.
+
+`InMemoryRateLimiterConcurrencyTest` starts many threads on a frozen clock (no refill during the race) and checks:
+
+- Allowed acquires on one key never exceed capacity, including a thundering-herd start.
+- Multi-permit acquires cannot oversubscribe the bucket.
+- Concurrent keys stay isolated.
+- First-touch of many keys under contention still yields independent full buckets.
+- Denied concurrent requests leave leftover tokens for a later smaller acquire.
+
+HTTP middleware (Day 6) can share one limiter instance without an extra lock.
 
 ## Non-goals for this phase
 
-Do not add Redis clients, HTTP middleware, configuration loading, metrics, or Docker in Day 4.
+Do not add Redis clients, HTTP middleware, configuration loading, metrics, or Docker in Day 5.
 
 ## Verification
 
-A developer should be able to clone the repository, run `./mvnw verify`, and see passing tests for library identity, API/config validation, and in-memory token-bucket behavior.
+A developer should be able to clone the repository, run `./mvnw verify`, and see passing tests for library identity, API/config validation, in-memory token-bucket behavior, and concurrent acquire races.

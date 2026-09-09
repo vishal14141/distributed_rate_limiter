@@ -15,7 +15,8 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Day 4 coverage of token-bucket math: continuous refill, capacity ceiling, remaining-token
- * flooring, and retry-after. Concurrency is covered on Day 5.
+ * flooring, and retry-after. Concurrent access is covered in {@link
+ * InMemoryRateLimiterConcurrencyTest}.
  */
 class TokenBucketBehaviorTest {
 
