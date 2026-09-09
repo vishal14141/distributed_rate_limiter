@@ -15,7 +15,7 @@ Implement in-memory token bucket. **Done** — `InMemoryRateLimiter` with per-ke
 Unit tests for token bucket behavior. **Done** — refill math, capacity cap, retry-after, key isolation, and remaining-token flooring.
 
 ### Day 5
-Concurrency safety and race detection.
+Concurrency safety and race detection. **Done** — per-key locking documented; stress tests for overspend, isolation, and denied no-consume.
 
 ### Day 6
 HTTP middleware.

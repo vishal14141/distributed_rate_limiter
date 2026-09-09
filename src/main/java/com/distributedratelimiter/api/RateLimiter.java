@@ -5,7 +5,8 @@ import com.distributedratelimiter.config.RateLimitConfig;
 /**
  * Decides whether a caller may consume tokens under a configured limit.
  *
- * <p>Implementations (in-memory, Redis) are added in later days. This type is the stable port
+ * <p>Implementations must be safe for concurrent callers. The in-memory backend serializes acquires
+ * per key; Redis-backed implementations are added in later days. This type is the stable port
  * applications and HTTP middleware should call.
  */
 public interface RateLimiter {
